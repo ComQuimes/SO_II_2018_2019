@@ -3,9 +3,9 @@
 
 int compara(const void *p1, const void *p2){
 	/**
-	* La funció compara, en aquest cas ha sigut modificada de tal manera
-	* que quan compari els dos elements retorni 1 si es mes petit o -1
-	* si es més gran el element 1 que el element 2.
+	* The function compara, it has been modified in order to compare the two
+	* elements and return 1 if the first element is lower than the second or
+	* return -1 in the opposite case. In other cases it returns 0. 
 	*/
 	
 	int *num1, *num2;
@@ -22,8 +22,13 @@ int compara(const void *p1, const void *p2){
 }
 
 int main(){
-	int *inters;
+	int *inters; //This creates the vector where we'll be storing the integers.
 	
+	/* 
+	* Next, We read the file where there are the ints
+	* to sort and load them in a char array.
+	*/
+
 	FILE *fp;
 	char str[100];
 
@@ -37,26 +42,38 @@ int main(){
 		puts(str);
 	}
 	
-	int MIDA = atoi(str);
-	inters = malloc(MIDA * sizeof(int));
+	int MIDA = atoi(str); //This gets the full size of the char array after the last read.
+	inters = malloc(MIDA * sizeof(int)); // Using the size that We got before We allocate the vector created before.
+
+	/*
+	* Because in the char array there are loaded the integers in string format they need to 
+	* be transformed to integers and, by using the atoi function, we solve that problem.
+	* After making the atoi We store the integer inside the dynamic vector in the i position.
+	*/
 
 	for(int i = 0;  i < MIDA; i++){
 		if( fgets (str,100,fp) != NULL){
 			puts(str);
 		}
-		inters[i] = atoi(str);
+		inters[i] = atoi(str); 
 	}
 
 
 	fclose(fp);
 
+	//Next, using the qsort function, with the vector, the size We got before, the size of ints and
+	//a call to the compara function, We sort the integers inside the dynamic vector.
+
 	qsort(inters, MIDA, sizeof(int), compara);
+
+	//After the sort We print the values in the dynamic vector.
 
 	for(int g = 0; g < MIDA; g++){
 		printf("%d ", inters[g]);
 		printf("\n");
 	}
 
+	//Finally, We need to free the dynamic memory that was reserved for the vector.
 	free(inters);
 	
 
