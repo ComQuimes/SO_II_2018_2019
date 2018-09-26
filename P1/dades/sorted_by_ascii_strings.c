@@ -43,8 +43,9 @@ int main(){
 	str_matrix = malloc(MIDA * sizeof(char *)); //we make the first malloc using number of lines
 
 	while(fgets(str,MIDA, fp) != NULL && i < MIDA){
-		str[strlen(str)-1] = '\0'; //turn the \n to 0
-		str_matrix[i] = (char*) malloc(strlen(str)*sizeof(char)); //this creates a row in the matrix where it'll store the string.
+        int h = strlen(str);
+		str[h-1] = '\0'; //turn the \n to 0
+		str_matrix[i] = (char*) malloc(h*sizeof(char)); //this creates a row in the matrix where it'll store the string.
 		strcpy(str_matrix[i],str); //this copy the string inside the row of the matrix of chars
 		i++; 
 	}
@@ -56,6 +57,7 @@ int main(){
 	for(int g = 0; g < MIDA; g++){
 		printf("%s ", str_matrix[g]);
 		printf("\n");
+        free(str_matrix[g]);
 	}
 
 	free(str_matrix);
