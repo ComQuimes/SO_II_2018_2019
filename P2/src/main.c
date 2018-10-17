@@ -23,6 +23,10 @@ char *split (char *str, int pos, int *size) {
     int start;
     int i;
     
+    // ------------------------------------------------------
+    // -- Este bucle se tiene que modificar y copiar donde se llama el metodo split
+    // tres veces.
+    // ------------------------------------------------------
     for (i = 0; i < max; i++) { /* We travel the line one char at a time */
         
         if (str[i] == ',' || str[i] == '\n') { /* If we find a period or reach the end of the line: increase counter */
@@ -133,6 +137,10 @@ void flight_list(rb_tree *tree, char *filename) {
         /* We fill the matrix with the lines from the file */
         while (fgets(str, FLIGHT_LINE_SIZE, fp) != NULL) {
             
+        	// ------------------------------------------------------
+            // -- Aqui se tiene que hacer un bucle que se recorra tres veces 
+            // con el codigo del metodo split.
+            // ------------------------------------------------------
             aux = split(&str[0], 14, &size);
             delay = (char *)malloc(size*sizeof(char));
             memcpy(delay, aux, size);
