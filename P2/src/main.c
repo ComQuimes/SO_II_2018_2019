@@ -139,7 +139,12 @@ void flight_list(rb_tree *tree, char *filename) {
             
         	// ------------------------------------------------------
             // -- Aqui se tiene que hacer un bucle que se recorra tres veces 
-            // con el codigo del metodo split.
+            // con el codigo del metodo split. 
+            // -- Tambien se tienen que modificar las variables y tal, 
+            // lo tipico para que no nos pillen copiando XD y se tiene que
+            // comentar el codigo del fichero red-black-tree y linked-list
+            // ya que se tienen que modificar para funcionar con cadenas de caracteres.
+            // -- Y con esto y un bizcocho....
             // ------------------------------------------------------
             aux = split(&str[0], 14, &size);
             delay = (char *)malloc(size*sizeof(char));
