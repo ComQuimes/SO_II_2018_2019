@@ -17,11 +17,11 @@ FILES_O = red-black-tree.o linked-list.o main.o
 $(TARGET): $(FILES_O) Makefile
 	gcc $(FILES_O) -o $(TARGET) $(LFLAGS) 
 
-red-black-tree.o: arbre-binari/red-black-tree.c Makefile
-	gcc $(CFLAGS) -c arbre-binari/red-black-tree.c
+red-black-tree.o: red-black-tree.c Makefile
+	gcc $(CFLAGS) -c red-black-tree.c
 
-linked-list.o: linked-list/linked-list.c Makefile
-	gcc $(CFLAGS) -c linked-list/linked-list.c
+linked-list.o: linked-list.c Makefile
+	gcc $(CFLAGS) -c linked-list.c
 
 main.o: main.c Makefile
 	gcc $(CFLAGS) -c main.c

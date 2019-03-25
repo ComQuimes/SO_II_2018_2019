@@ -2,255 +2,302 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "arbre-binari/red-black-tree.h"
-#include "linked-list/linked-list.h"
+#include "red-black-tree.h"
+#include "linked-list.h"
 
-static int const MAX_LINE_SIZE = 100;
-static int const FLIGHT_LINE_SIZE = 500;
-static int const IATA_CODE = 3;
-int max_dest = 0;
-char *airport;
+int contador_destinos = 0;
+char *aeropuerto;
 
-/* Method that splits a line of the 'dades' table and returns the info in the specified column
- * @param *str char pointer to the designated line
- * @param pos number of the column we want to obtain
- * @param *size size of the info in the column
- * @return &str string with the selected column of the current line
- */
-char *split (char *str, int pos, int *size) {
-    int max = strlen(str); /* Max lenght of the line */
-    int counter = 0; /* Counter to keep track of the number of periods */
-    int start;
-    int i;
-    
-    // ------------------------------------------------------
-    // -- Este bucle se tiene que modificar y copiar donde se llama el metodo split
-    // tres veces.
-    // ------------------------------------------------------
-    for (i = 0; i < max; i++) { /* We travel the line one char at a time */
-        
-        if (str[i] == ',' || str[i] == '\n') { /* If we find a period or reach the end of the line: increase counter */
-            counter++;
-            if (counter == pos) { /* If we arrive to the desired column, save the starting position */
-                start = i;
-            }
-            else if (counter == pos+1) { /* If we arrive to the next period after 'start': */
-                *size = i-start; /* Calculate size of string */
-                return &str[start+1]; /* Return the string by reference */
-            }
-        }
-    }
-    return 0;
+// #############################################################################
+// -- Aquesta funció ens retorna la posicio de la linia en la que comença la 
+// columna desitjada.
+// #############################################################################
+char *get_posicio(char *linea, int col, int *tamany) {
+
+	// -- Agafem la allargada de la linia, inicialitzem el contador, a mes 
+	// creem les variables "i" i col.
+	int tamany_linea = strlen(linea); /* Max lenght of the line */
+	int n_columna = 0; /* Counter to keep track of the number of periods */
+	int pos;
+	int cont;
+
+	// -- Aquest bucle for recorre tota la linia que s'ha pasat per parametre.
+	for (cont = 0; cont < tamany_linea; cont++) { 
+
+		// -- Si el caracter actual es una coma vol dir que estem en una
+		// nova columna i incrementem el numero de columna en el que estem.
+		if (linea[cont] == ',' || linea[cont] == '\n') { 
+			n_columna++;
+			
+			// -- Comprovem si la nova columna es la desitjada i guardem 
+			// en quina posicio s'inicia.			
+			if (n_columna == col) { 
+				pos = cont;
+			}
+
+			// -- Si estem en la seguent columna ja podem calcular el 
+			// tamany de la paraula continguda en la columna i retornem 
+			// la posicio en la que hi ha la primera lletra per referencia.
+			else if (n_columna == col+1) { 
+				*tamany = cont-pos; 
+				return &linea[pos+1];
+			}
+		}
+	}
+
+	// -- En cas de no trobar la columna dessitjada retornem el valor 0.
+	return 0;
 }
 
-/* Method that fills the tree with nodes from a given file
- * @param *filename name of the file with the nodes
- * @return tree
- */
-rb_tree *airport_tree(char *filename) {
-    FILE *fp;
-    char str[MAX_LINE_SIZE];
-    int line_num = 0;
-    int i = 0;
-    rb_tree *tree;
-    node_data *n_data;
+// #############################################################################
+// -- Aquesta funció ens permet emplenar el arbre binari amb tots els aeroports.
+// #############################################################################
+rb_tree *arbre_aeroport(char *fitxer) {
     
-    /* Opening file for reading */
-    fp = fopen(filename, "r");
-    if (fp == NULL) /* If there's no file, print an error */
-    {
-        perror("Error opening file");
-        return 0;
-    }
-    
-    /* line_num = 1st line of file */
-    if (fgets(str, MAX_LINE_SIZE, fp) != NULL)
-    {
-        line_num = atoi(str);
-    }
-    
-    /* Allocate memory for tree */
-    tree = (rb_tree *)malloc(sizeof(rb_tree));
-    
-    /* Initialize the tree */
-    init_tree(tree);
+	// -- Creem les variables necessaries i obrim el fitxer passat per 
+	// parametre.
+	FILE *fp;
+	char codi_IATA[4];
+	int cont_linea = 0;
+	int cont = 0;
+	rb_tree *arbre;
+	node_data *node;
+	fp = fopen(fitxer, "r");
+    	
+	// -- Comprovem si s'ha pogut llegir el fitxer, so no es pot obrir 
+	// informem via log.
+	if (fp == NULL) {
+		printf("\nError al obrir el fitxer.\n");
+	        return 0;
+	}
 
-    /* We fill the matrix with the lines from the file */
-    while (fgets(str, MAX_LINE_SIZE, fp) != NULL && i < line_num) {
-        
-        /* Overwrite '\n' with '\0'*/
-        str[IATA_CODE] = '\0';
-        
-        /* Search if the key is in the tree */
-        n_data = find_node(tree, str);
-        
-        if (n_data == NULL) {
-            /* If the key is not in the tree, allocate memory for the data
-            * and insert in the tree */
-            n_data = (node_data *)malloc(sizeof(node_data));
-            
-            /* This is the key by which the node is indexed in the tree */
-            n_data->key = (char *)malloc((IATA_CODE+1)*sizeof(char));
-            strcpy(n_data->key, str);
-            
-            /* This is additional information that is stored in the tree */
-            /* Initialize the list */
-            n_data->flights = (list *)malloc(sizeof(list));
-            init_list(n_data->flights);
-
-            /* We insert the node in the tree */
-            insert_node(tree, n_data);
-        }
-        i++;
-    }
+	// -- Agafem el nombre de aeroports que contenen les dades (aquesta
+	// informacio esta en la primera linea del fitxer).
+	if (fgets(codi_IATA, 4, fp) != NULL) {
+	        cont_linea = atoi(codi_IATA);
+	}
     
-    fclose(fp);
-    return tree;
+	// -- Creem un espai de memoria destinat per el arbre i l'inicialitzem.
+	arbre = (rb_tree *)malloc(sizeof(rb_tree));
+	init_tree(arbre);
+
+	// -- Aquest bucle s'executara sempre que quedin linies per llegir o 
+	// es llegeixi una linea sence informacio.
+	while (fgets(codi_IATA, 100, fp) != NULL && cont < cont_linea) {
+        
+		// -- Eliminamos el salto de linea ('\n') con '\0', los codigos 
+		// IATA estan formados por tres cararcteres.
+	        codi_IATA[3] = '\0';
+        
+		// -- Buscamos el nodo actual en el arbol, si este no esta lo 
+		// insertamos en el arbol.
+	        node = find_node(arbre, codi_IATA);
+	        if (node == NULL) {
+            
+			// -- Creem el espai de memoria necessaria per el nou node.
+        		node = (node_data *)malloc(sizeof(node_data));
+            
+			// -- Creem el espai de memoria necessaria per enmagatzema 
+			// la clau i la llista de vols i els guardem en el node.
+        		node->key = (char *)malloc((4)*sizeof(char));
+        		strcpy(node->key, codi_IATA);
+        		node->vuelos = (list *)malloc(sizeof(list));
+        		init_list(node->vuelos);
+
+			// -- Afegim el nou node al arbre.
+        		insert_node(arbre, node);
+        	}
+		// -- Actualitzem la linia que ens toca llegir.
+        	cont++;
+	}
+    
+	// -- Un cop tenim el arbre ple tanquem el fitxer i retornem el arbre creat.
+	fclose(fp);
+	return arbre;
 }
 
-/* Method that fills the linked list of the tree nodes with the flights from a file
- * @param *tree pointer to the tree
- * @param *filename name of the file with the information about flights
- */
-void flight_list(rb_tree *tree, char *filename) {
-    FILE *fp;
-    char str[FLIGHT_LINE_SIZE];
-    char *delay;
-    char *origin;
-    char *destination;
-    char *aux;
-    node_data *n_data;
-    list *l;
-    int size;
-    list_data *l_data;
-    
-    
-    /* Opening file for reading */
-    fp = fopen(filename, "r");
-    if (fp == NULL) { /* If there's no file, print an error */
-        perror("Error opening file");
-    }
-    
-    /* We skip the 1st line of the file */
-    if (fgets(str, FLIGHT_LINE_SIZE, fp) != NULL){
+// #############################################################################
+// -- Aquesta funció ens permet emplenar els nodes del arbre binari amb la 
+// llista dels vols que te cada aeroport.
+// #############################################################################
+void lista_vuelos(rb_tree *arbre, char *fitxer) {
+
+	// -- Creem les variables necessaries i obrim el fitxer passat per 
+	// parametre.
+	FILE *fp;
+	char str[500];
+	list_data *lista_data;
+	char *destino;
+	char *retard;
+	char *origen;
+	node_data *node;
+	list *llista_vols;
+	int tamany;
+	char *posicio;   
+	fp = fopen(fitxer, "r");
+
+	// -- Comprovem si s'ha pogut llegir el fitxer, so no es pot obrir 
+	// informem via log.
+    	if (fp == NULL) { 
+        	perror("\nError al obrir el fitxer.\n");
+	}
+	
+	// -- La primera linea de les dades conte el nom de les columnes, 
+	// aquesta la linea no la necessitem.    
+    	fgets(str, 500, fp);
         
-        /* We fill the matrix with the lines from the file */
-        while (fgets(str, FLIGHT_LINE_SIZE, fp) != NULL) {
-            
-        	// ------------------------------------------------------
-            // -- Aqui se tiene que hacer un bucle que se recorra tres veces 
-            // con el codigo del metodo split. 
-            // -- Tambien se tienen que modificar las variables y tal, 
-            // lo tipico para que no nos pillen copiando XD y se tiene que
-            // comentar el codigo del fichero red-black-tree y linked-list
-            // ya que se tienen que modificar para funcionar con cadenas de caracteres.
-            // -- Y con esto y un bizcocho....
-            // ------------------------------------------------------
-            aux = split(&str[0], 14, &size);
-            delay = (char *)malloc(size*sizeof(char));
-            memcpy(delay, aux, size);
-            delay[size-1] = '\0';
-            
-            aux = split(&str[0], 16, &size);
-            origin = (char *)malloc(size*sizeof(char));
-            memcpy(origin, aux, size);
-            origin[size-1] = '\0';
-            
-            aux = split(&str[0], 17, &size);
-            destination = (char *)malloc(size*sizeof(char));
-            memcpy(destination, aux, size);
-            destination[size-1] = '\0';
-            
-            /* Search if the key is in the tree */
-            n_data = find_node(tree, origin);
-            
-            if (n_data != NULL) {
-                l = n_data->flights;
-                
-                /* Search if the key is in the tree */
-                l_data = find_list(l, destination);
-                
-                if (l_data != NULL) {
+	// -- -- Aquest bucle s'executara sempre que quedin linies per llegir.
+	while (fgets(str, 500, fp) != NULL) {
 
-                    /* We increment the number of times current item has appeared */
-                    l_data->n_flights++;
-                    l_data->delay += atoi(delay);
-		            free(destination);
-                }
-                else {
-                    /* If the key is not in the list, allocate memory for the data and
-                    * insert it in the list */
+		// -- Mitjançant el metode get_posicio tenim el punter linea 
+		// apuntant al primer caracter de la columna dessitjada, i 
+		// mitjançant memcpy copiem la columna desitjada, aquest proces ç
+		// es repeteix per les columnes 14, 16 i 17.
+	        posicio = get_posicio(&str[0], 14, &tamany);
+	        retard = (char *)malloc(tamany*sizeof(char));
+	        memcpy(retard, posicio, tamany);
+	        retard[tamany-1] = '\0';
+		posicio = get_posicio(&str[0], 16, &tamany);
+		origen = (char *)malloc(tamany*sizeof(char));
+		memcpy(origen, posicio, tamany);
+		origen[tamany-1] = '\0';
+		posicio = get_posicio(&str[0], 17, &tamany);
+		destino = (char *)malloc(tamany*sizeof(char));
+		memcpy(destino, posicio, tamany);
+		destino[tamany-1] = '\0';
+		
+		// -- Busquem el aeroport en el arbre com ha node, si aquest
+		// existeix en el arbre creat previament actualitzem la seva
+		// llista de vols y el seu retard.
+		node = find_node(arbre, origen);
+		if (node != NULL) {
+		
+			// -- Agafem la llista de vols del node aeroport origen 
+			// i busquem el aeroport desti en la llista.
+			llista_vols = node->vuelos;
+			lista_data = find_list(llista_vols, destino);
 
-                    l_data = malloc(sizeof(list_data));
-                    l_data->key = destination;
-                    l_data->n_flights = 1;
-                    l_data->delay = atoi(delay);
+			// -- Si el desti existeix en el node desti sumem 1 al
+			// numero de vols i sumem el retard al retard acomulat.
+			if (lista_data != NULL) {
+			    lista_data->num_vols++;
+			    lista_data->retard += atoi(retard);
+			    free(destino);
+			}
+			// -- Si el desti no existeix en el node desti es 
+			// necessari crear-lo.
+			else {
+				
+				// -- Creem la llista de vols i guardem el aeroport
+				// desti com ha clau, el numero de vols (s'inicialitza
+				// a 1) i guardem el valor del retart.
+				lista_data = malloc(sizeof(lista_data));
+				lista_data->key = destino;
+				lista_data->num_vols = 1;
+				lista_data->retard = atoi(retard);
 
-                    insert_list(l, l_data);
-                }
-                    
-            }
-            free(origin);
-	    free(delay);
-        }
-    }
-    fclose(fp);
+				// -- Guardem la nova llista de vols en el node origen.
+				insert_list(llista_vols, lista_data);
+			}
+		}
+		
+		// -- Alliberem la memoria de les variables origen i retard.
+	        free(origen);
+		free(retard);
+	}
+	
+	// -- Tanquem el fitxer de dades que conte el vols.
+	fclose(fp);
 }
 
-/* Recursive method that explores all tree nodes and finds the node with more destinations
- * @param *x node
- */
-void postorder(node *x) {
-    int center = x->data->flights->num_items;
-    
-    if (x->right != NIL)
-        postorder(x->right);
+// #############################################################################
+// -- Aquesta funció ens permet saber quin es el aeroport amb més vols. 
+// (aixo es fa explorant el arbre en postorde)
+// #############################################################################
+void vuelos_maximos(node *x) {
+	
+	// --Agafem el numero de vols del node pasat per parametre.
+	int n_destins = x->data->vuelos->num_items;
 
-    if (x->left != NIL)
-        postorder(x->left);
+	// -- Mirem el node fill de la dreta.
+	if (x->right != NIL)
+	vuelos_maximos(x->right);
 
-    /* If our current node has more destinations than max_dest, save current node */
-    if (center > max_dest) {
-        max_dest = center;
-        airport = x->data->key;
-    }
+	// -- Mirem el node fill de l'esquerra.
+	if (x->left != NIL)
+	vuelos_maximos(x->left);
+
+	// -- Comprovem si el node actual te més vols que els aeroports ja 
+	// visitats, en aquest cas actualitzem el contador de deestins i el 
+	// aeroport.
+	if (n_destins > contador_destinos) {
+		contador_destinos = n_destins;
+		aeropuerto = x->data->key;
+	}
 }
 
-int main(int argc, char **argv)
-{
-    rb_tree *tree = airport_tree(argv[2]); /* Tree of the different airports */
-    flight_list(tree, argv[1]); /* List with the info about different flights */
+// #############################################################################
+// -- Aquesta funció es el main, crida les funcions implementades anteriorment 
+// per tal de cumplir el objectius establerts.
+// #############################################################################
+int main(int argc, char **argv) {
+
+	// -- Creem el arbre balancejat amb els aeroports que estan en el fitxer 
+	// passat per parametre. (1er parametre) 
+	rb_tree *arbre_aeroports = arbre_aeroport(argv[1]); 
+
+	// -- Competem el arbre balancejat amb els vols que estan en el fitxer 
+	// passat per parametre. (2on parametre)
+	lista_vuelos(arbre_aeroports, argv[2]); 
     
-    node_data *n_data = find_node(tree, argv[3]); /* Find given node in tree */
+	// -- Busquem el aeroport origen (3er parametre) en el arbre creat anteriorment.
+	node_data *n_data = find_node(arbre_aeroports, argv[3]);
     
-    if (n_data != NULL) { /* If the node exists, get the node's flight list */
-        list_data *l_data;
-        float avg_delay;
-        list_item *l_item = n_data->flights->first;
-        
-        if (l_item == NULL) { /* If there's no list, print message */
-            printf("There are no flights from this airport\n");
-        }
-        else {
-            while (l_item != NULL) { /* Print list of the current node */
-                l_data = l_item->data;
-                avg_delay = (float)l_data->delay/l_data->n_flights;
-                printf("Destination: %s\tAverage delay: %f\n", l_data->key, avg_delay);
-                l_item = l_item->next;
-            }
-        }
-    }
-    else {
-        perror("Origin not valid\n");
-    }
+	// -- Si el node existeix en el arbre procedim a computar els objectius
+	// establerts. (Mostrar vols d'un aeroport i el aeroport amb més vols)
+	if (n_data != NULL) { 
+
+		// -- Creem la llista que contindra la informació dels vols,
+		// la variable reterd_promig y agafem la llista de vols del node
+		// pasat per parametre. (3er parametre)
+		list_data *l_data;
+		float avg_delay;
+		list_item *l_item = n_data->vuelos->first;
+		
+
+		// -- Comprovem si l'aeroport origen te vols.
+		if (l_item == NULL) { 
+			printf("\nAquest aeroport no te vols.\n");
+		} else {
+			printf("\n");
+
+			// -- Aquest bucle s'executara sempre que quedin vols a computar.
+			while (l_item != NULL) { 
+
+				// -- Agafem la informació del vol actual, calculem 
+				// el retard_promig i mostrem el vol per consola.
+				l_data = l_item->data;
+				avg_delay = (float)l_data->retard/l_data->num_vols;
+				printf("Aeroport desti ==> %s\t Retard promig dels vols ==>: %f\n", l_data->key, avg_delay);
+
+				// -- Seleccionem el seguent vol de la llista.
+				l_item = l_item->next;
+		    	}
+		}
+	}
+	else {
+		
+		// -- Mostrem un missatje indicant que aquest aeroport no existeix en el arbre.
+		printf("Aquest aeroport no existeix en la nostra base de dades.\n");
+	}
     
-    /* Find and print the airport with more destinations */
-    postorder(tree->root);
-    printf("Airport: %s\tDestinations: %d\n", airport, max_dest);
+	// -- Mitjançant la funcio de vols_maxim trobem el aeroport del arbre amb mes vols.
+	vuelos_maximos(arbre_aeroports->root);
+	printf("\nL'aeroport %s te un total de %d destins diferents.\n\n", aeropuerto, contador_destinos);
     
-    /* Delete tree */
-    delete_tree(tree);
-    free(tree);
-    
-    return 0;
+	// -- Eliminem el arbre d'aeroports i alliberem la memoria.
+	delete_tree(arbre_aeroports);
+	free(arbre_aeroports);
+    	
+	return 0;
 }
